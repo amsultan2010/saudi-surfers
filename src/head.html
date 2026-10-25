@@ -1,0 +1,210 @@
+<title>Saudi Surfers</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lalezar&family=Lilita+One&display=swap">
+<style>
+/* Layout: full-bleed WebGL street; chunky arcade HUD floats in the corners inside safe-area gutters.
+   One committed look (sunny cartoon runner), so a single palette serves both host themes. */
+:root{
+  --navy:#16213f;
+  --ink:#0d1530;
+  --white:#ffffff;
+  --gold:#ffd21f;
+  --gold-deep:#f39a00;
+  --green:#5fd23f;
+  --green-deep:#2f9a22;
+  --green-edge:#1d6116;
+  --blue:#3bb4ff;
+  --blue-deep:#1679d6;
+  --blue-edge:#0b4a8a;
+  --m-blue:#1d9bf0;--m-red:#ff4b3e;--m-orange:#ff9a1f;--m-yellow:#ffcc1a;--m-green:#3cc45a;--m-purple:#a35ce0;
+  --f-game:'Lilita One','Arial Rounded MT Bold','Trebuchet MS',system-ui,sans-serif;
+  --f-arabic:'Lalezar','Geeza Pro','Noto Kufi Arabic','Segoe UI',system-ui,sans-serif;
+  color-scheme:dark;
+}
+html,body{height:100%;margin:0;overflow:hidden;background:#ffe3c6;color:var(--white);font-family:var(--f-game);
+  touch-action:none;-webkit-user-select:none;user-select:none;overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+#game{position:fixed;inset:0;background:#ffe3c6}
+#game canvas{display:block;width:100%;height:100%;filter:saturate(1.1) contrast(1.05) brightness(.93)}
+#ui{position:fixed;inset:0;pointer-events:none;box-sizing:border-box;
+  padding-top:calc(env(safe-area-inset-top,0px) + 12px);padding-bottom:calc(env(safe-area-inset-bottom,0px) + 14px);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;pointer-events:auto}
+button:focus-visible{outline:4px solid var(--gold);outline-offset:3px}
+.o{color:#fff;-webkit-text-stroke:4px var(--ink);paint-order:stroke fill}
+
+/* glossy buttons */
+.gbtn{border:0;border-radius:18px;padding:12px 28px 15px;font-size:26px;letter-spacing:.02em;text-transform:uppercase;position:relative;
+  box-shadow:0 6px 0 var(--edge),0 10px 18px rgba(0,0,0,.25);transition:transform .08s}
+.gbtn::after{content:"";position:absolute;left:8px;right:8px;top:5px;height:42%;border-radius:12px;background:linear-gradient(rgba(255,255,255,.55),rgba(255,255,255,.08));pointer-events:none}
+.gbtn:active{transform:translateY(5px);box-shadow:0 1px 0 var(--edge)}
+.gbtn span{position:relative;z-index:1;color:#fff;-webkit-text-stroke:5px var(--edge);paint-order:stroke fill}
+.g-green{--edge:var(--green-edge);background:linear-gradient(var(--green),var(--green-deep))}
+.g-blue{--edge:var(--blue-edge);background:linear-gradient(var(--blue),var(--blue-deep))}
+.g-orange{--edge:#8a3d00;background:linear-gradient(#ffb43a,#f07800)}
+
+/* HUD */
+#hud{position:absolute;inset:0;padding:inherit;box-sizing:border-box}
+.hud-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.pause{width:42px;height:42px;padding:0;border-radius:12px;box-shadow:0 4px 0 var(--edge),0 6px 12px rgba(0,0,0,.2);display:grid;place-items:center}
+.pause::after{border-radius:10px}
+.pause svg{position:relative;z-index:1;width:18px;height:18px;filter:drop-shadow(0 2px 0 var(--blue-edge))}
+.mute{width:44px;height:44px;padding:0;border-radius:13px;display:grid;place-items:center}
+.mute svg{position:relative;z-index:1;width:22px;height:22px}
+.panels{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.panel{background:rgba(22,33,63,.66);border-radius:12px;display:flex;align-items:center;gap:7px;padding:3px 11px 3px 7px;
+  box-shadow:inset 0 -3px 0 rgba(0,0,0,.25)}
+.mult{display:flex;align-items:center;gap:1px;font-size:16px;color:var(--gold)}
+.mult svg{width:22px;height:22px;filter:drop-shadow(0 2px 0 rgba(0,0,0,.35))}
+.mult.hot{animation:spin .9s ease-in-out infinite alternate}
+#score{font-size:clamp(19px,4.6vw,26px);min-width:3.2ch;text-align:right;font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.coinp{padding:3px 7px 3px 11px}
+#coins{font-size:clamp(16px,3.8vw,20px);font-variant-numeric:tabular-nums}
+.coin-ico{width:21px;height:21px;border-radius:50%;background:radial-gradient(circle at 38% 32%,#fff7b0 0 14%,var(--gold) 15% 58%,var(--gold-deep) 59%);
+  box-shadow:inset 0 0 0 3px #ffe36b,0 2px 0 #9a5a00;display:grid;place-items:center;color:#e08600;font-size:11px;flex:none}
+.bump{animation:bump .22s ease-out}
+@keyframes bump{40%{transform:scale(1.28)}100%{transform:scale(1)}}
+@keyframes spin{from{transform:rotate(-8deg) scale(1)}to{transform:rotate(8deg) scale(1.12)}}
+#powers{position:absolute;left:max(16px,env(safe-area-inset-left,0px));top:calc(env(safe-area-inset-top,0px) + 64px);display:flex;flex-direction:column;gap:6px}
+.pw{display:flex;align-items:center;gap:6px;background:rgba(22,33,63,.62);border-radius:999px;padding:3px 9px 3px 3px;animation:pop .3s ease-out}
+.pw-badge{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:11px;color:#fff;box-shadow:inset 0 -3px 0 rgba(0,0,0,.25),0 0 0 2px #fff}
+.pw-bar{width:54px;height:7px;border-radius:5px;background:rgba(255,255,255,.18);overflow:hidden}
+.pw-fill{height:100%;border-radius:5px;transform-origin:left center}
+@keyframes pop{0%{transform:scale(.4);opacity:0}70%{transform:scale(1.1);opacity:1}100%{transform:scale(1)}}
+.next{position:absolute;left:max(16px,env(safe-area-inset-left,0px));bottom:calc(env(safe-area-inset-bottom,0px) + 20px);display:flex;align-items:center;gap:8px;
+  background:rgba(22,33,63,.55);border-radius:999px;padding:4px 10px 4px 6px;font-size:11px;opacity:.9;letter-spacing:.04em;max-width:58vw;white-space:nowrap;overflow:hidden}
+.next i{flex:none;width:10px;height:10px;border-radius:50%;box-shadow:0 0 0 2px #fff;background:var(--m-blue)}
+.next b{color:var(--gold);font-weight:400}
+.toast{position:absolute;left:50%;top:13%;transform:translate(-50%,-30px) scale(.6);opacity:0;pointer-events:none;width:min(92vw,520px);text-align:center;
+  transition:opacity .25s,transform .45s cubic-bezier(.2,1.6,.4,1)}
+.toast.show{opacity:1;transform:translate(-50%,0) scale(1)}
+.ribbon{display:inline-flex;flex-direction:column;align-items:center;padding:5px 16px 7px;border-radius:13px;background:linear-gradient(var(--blue),var(--blue-deep));
+  box-shadow:0 4px 0 var(--blue-edge),0 8px 16px rgba(0,0,0,.2)}
+.toast-ar{font-family:var(--f-arabic);font-size:clamp(20px,5vw,30px);line-height:1.15;color:var(--gold);-webkit-text-stroke:5px var(--blue-edge);paint-order:stroke fill}
+.toast-en{font-size:11px;letter-spacing:.06em;text-transform:uppercase;-webkit-text-stroke:4px var(--blue-edge);paint-order:stroke fill}
+.toast-bonus{margin-top:6px;display:inline-block;background:var(--gold);color:var(--ink);border-radius:999px;padding:2px 10px;font-size:12px;box-shadow:0 3px 0 var(--gold-deep)}
+.flash{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%) scale(.5);font-size:clamp(20px,5.5vw,32px);opacity:0;pointer-events:none;white-space:nowrap;
+  color:#fff;-webkit-text-stroke:5px var(--ink);paint-order:stroke fill;transition:opacity .2s,transform .35s cubic-bezier(.2,1.8,.4,1)}
+.flash.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+
+/* screens */
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;gap:16px;pointer-events:auto;padding:inherit;box-sizing:border-box;text-align:center}
+#title{justify-content:space-between;padding-top:calc(env(safe-area-inset-top,0px) + 5vh);padding-bottom:calc(env(safe-area-inset-bottom,0px) + 4vh);cursor:pointer}
+.logo{display:flex;flex-direction:column;align-items:center;transform:rotate(-4deg);animation:logoIn .7s cubic-bezier(.2,1.5,.4,1) both}
+@keyframes logoIn{from{transform:rotate(-4deg) scale(.3);opacity:0}}
+.logo-ar{font-family:var(--f-arabic);font-size:clamp(40px,10vw,70px);line-height:1.1;color:#fff;-webkit-text-stroke:9px var(--ink);paint-order:stroke fill;
+  text-shadow:0 7px 0 var(--ink)}
+.logo-en{font-size:clamp(54px,14vw,108px);line-height:.9;letter-spacing:.01em;text-transform:uppercase;color:var(--gold);
+  -webkit-text-stroke:10px var(--ink);paint-order:stroke fill;text-shadow:0 9px 0 var(--ink)}
+.logo-en .l2{display:block;color:#7fd3ff}
+.credit{font-size:15px;letter-spacing:.04em;color:#fff;-webkit-text-stroke:4px var(--ink);paint-order:stroke fill;text-decoration:none;
+  background:rgba(22,33,63,.55);padding:5px 12px;border-radius:999px;pointer-events:auto}
+.credit:hover{color:var(--gold)}
+.credit:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+#title .title-top{display:flex;flex-direction:column;align-items:center;gap:14px}
+.title-bottom{display:flex;flex-direction:column;align-items:center;gap:14px}
+.tap{font-size:clamp(30px,8vw,46px);color:#fff;-webkit-text-stroke:7px var(--ink);paint-order:stroke fill;animation:pulse 1.1s ease-in-out infinite;text-transform:uppercase}
+@keyframes pulse{50%{transform:scale(1.1)}}
+.chips{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;align-items:center}
+.chip{background:rgba(22,33,63,.88);border-radius:14px;padding:8px 14px;font-size:16px;letter-spacing:.03em;display:flex;align-items:center;gap:8px}
+.chip b{color:var(--gold);font-weight:400}
+.hints{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 14px;font-size:14px;max-width:min(92vw,520px);color:#fff;-webkit-text-stroke:4px var(--ink);paint-order:stroke fill}
+kbd{font-family:var(--f-game);font-size:12px;padding:2px 7px;border-radius:7px;background:#fff;color:var(--ink);-webkit-text-stroke:0;box-shadow:0 3px 0 var(--ink)}
+.dim{background:rgba(13,21,48,.45)}
+#over,#pause{justify-content:center}
+.card{width:min(90vw,400px);background:linear-gradient(#3bb4ff,#1f8de0);border-radius:28px;padding:16px 18px 22px;box-sizing:border-box;margin-top:30px;
+  box-shadow:0 8px 0 var(--blue-edge),0 20px 40px rgba(0,0,0,.35);display:flex;flex-direction:column;align-items:center;gap:12px;animation:pop .45s cubic-bezier(.2,1.4,.4,1)}
+.card h2{margin:-44px 0 0;font-family:var(--f-arabic);font-weight:400;font-size:54px;line-height:1.15;color:var(--gold);-webkit-text-stroke:8px var(--ink);paint-order:stroke fill;
+  transform:rotate(-3deg)}
+.card .sub{font-size:16px;letter-spacing:.06em;text-transform:uppercase;-webkit-text-stroke:4px var(--blue-edge);paint-order:stroke fill;margin-top:-6px}
+.inner{width:100%;background:rgba(13,21,48,.3);border-radius:18px;padding:12px 10px;box-sizing:border-box;display:flex;flex-direction:column;gap:8px;align-items:center}
+.lbl{font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:#cfe9ff}
+.final{font-size:62px;line-height:1;font-variant-numeric:tabular-nums;color:#fff;-webkit-text-stroke:7px var(--ink);paint-order:stroke fill}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%}
+.stat{background:rgba(255,255,255,.16);border-radius:14px;padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0}
+.stat .v{font-size:24px;font-variant-numeric:tabular-nums}
+.stat .k{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#e3f3ff}
+.best{font-size:16px;letter-spacing:.04em}
+.best.new{color:var(--gold);animation:pulse .8s ease-in-out infinite}
+.row{display:flex;gap:12px;align-items:center;justify-content:center}
+.play{font-size:32px;padding:12px 38px 16px}
+.home{padding:12px 18px 15px}
+.home svg{position:relative;z-index:1;width:26px;height:26px}
+@media (pointer:coarse){.pause{width:50px;height:50px}}
+@media (max-height:560px){.logo-ar{font-size:34px}.logo-en{font-size:50px}.hints{display:none}}
+@media (prefers-reduced-motion:reduce){.tap,.best.new,.mult.hot,.logo{animation:none}.toast,.flash{transition:none}}
+</style>
+
+<div id="game" aria-hidden="true"></div>
+<div id="ui">
+  <div id="hud" hidden>
+    <div class="hud-top">
+      <div>
+        <button id="btnPause" class="gbtn g-blue pause" aria-label="Pause"><svg viewBox="0 0 24 24" fill="#fff"><rect x="4" y="3" width="6" height="18" rx="2"/><rect x="14" y="3" width="6" height="18" rx="2"/></svg></button>
+      </div>
+      <div class="panels">
+        <div class="panel"><div id="mult" class="mult"><span id="multTxt">x1</span><svg viewBox="0 0 24 24"><path d="M12 2.2l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17l-5.9 3.3 1.3-6.6L2.5 9.1l6.6-.8z" fill="#ffd21f" stroke="#c97a00" stroke-width="1.6" stroke-linejoin="round"/></svg></div><div id="score" class="o">0</div></div>
+        <div class="panel coinp"><div id="coins" class="o">0</div><span class="coin-ico">★</span></div>
+      </div>
+    </div>
+    <div id="powers"></div>
+    <div class="next" id="next"><i id="nextDot"></i><span id="nextTxt">Next: <b>Kingdom Centre</b></span></div>
+    <div id="toast" class="toast"><div class="ribbon"><div class="toast-ar" id="toastAr"></div><div class="toast-en" id="toastEn"></div></div><div><span class="toast-bonus" id="toastBonus"></span></div></div>
+    <div id="flash" class="flash"></div>
+  </div>
+
+  <div id="title" class="screen">
+    <div class="title-top">
+    <div class="logo">
+      <div class="logo-ar" lang="ar" dir="rtl">سعودي سيرفرز</div>
+      <div class="logo-en">Saudi<span class="l2">Surfers</span></div>
+    </div>
+    <a class="credit" href="https://www.amsultan.site" target="_blank" rel="noopener">Built by Abdullah Sultan</a>
+    </div>
+    <div class="title-bottom">
+      <div class="tap" id="tapTxt">Tap to play</div>
+      <div class="hints">
+        <span><kbd>←</kbd> <kbd>→</kbd> switch</span><span><kbd>↑</kbd> jump</span><span><kbd>↓</kbd> roll</span><span>or swipe</span>
+      </div>
+      <div class="chips">
+        <div class="chip">Best <b id="bestTitle">0</b></div>
+        <div class="chip"><span class="coin-ico" style="width:22px;height:22px;font-size:12px">★</span><b id="bankTitle">0</b></div>
+        <button id="btnMute" class="gbtn g-blue mute" aria-label="Mute sound"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z" fill="#fff"/><path id="muteWave" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/><path id="muteX" d="M16 9l6 6M22 9l-6 6" hidden/></svg></button>
+      </div>
+    </div>
+  </div>
+
+  <div id="over" class="screen dim" hidden>
+    <div class="card">
+      <h2 id="overAr" lang="ar" dir="rtl">مسكتك!</h2>
+      <div class="sub" id="overEn">The police caught you</div>
+      <div class="inner">
+        <div class="lbl">Score</div>
+        <div class="final" id="finalScore">0</div>
+        <div class="best" id="bestLine">Best 0</div>
+      </div>
+      <div class="stats">
+        <div class="stat"><span class="v o" id="stCoins">0</span><span class="k">Coins</span></div>
+        <div class="stat"><span class="v o" id="stDist">0 m</span><span class="k">Distance</span></div>
+        <div class="stat"><span class="v o" id="stMarks">0</span><span class="k">Landmarks</span></div>
+      </div>
+      <div class="row">
+        <button id="btnHome" class="gbtn g-blue home" aria-label="Back to title"><svg viewBox="0 0 24 24" fill="#fff"><path d="M12 3l9 8h-3v9h-4v-6h-4v6H6v-9H3z"/></svg></button>
+        <button id="btnAgain" class="gbtn g-green play"><span>Play</span></button>
+      </div>
+    </div>
+  </div>
+
+  <div id="pause" class="screen dim" hidden>
+    <div class="card">
+      <h2 lang="ar" dir="rtl">استراحة</h2>
+      <div class="sub">Paused</div>
+      <div class="row">
+        <button id="btnQuit" class="gbtn g-blue home" aria-label="Back to title"><svg viewBox="0 0 24 24" fill="#fff"><path d="M12 3l9 8h-3v9h-4v-6h-4v6H6v-9H3z"/></svg></button>
+        <button id="btnResume" class="gbtn g-green play"><span>Resume</span></button>
+      </div>
+    </div>
+  </div>
+</div>
